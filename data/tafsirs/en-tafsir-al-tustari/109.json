@@ -1,0 +1,22 @@
+{
+  "ayahs": [
+    {
+      "ayah": 1,
+      "surah": 109,
+      "text": "Say, �O disbelievers!He said:The mentioning of the [command] Say, is merely in response to the request put [to the Prophet ] by the disbelievers, �Worship our god for a month and we will worship your God for a year.� At their saying this, God, Exalted is He, sent down this sūra. He said, Say, �O disbelievers! They returned with, �What is the matter with you, O Muḥammad?� He replied [with God�s words]:"
+    },
+    {
+      "ayah": 2,
+      "surah": 109,
+      "text": "I do not worship what you worship,now.and you do not worship what I worship,now."
+    },
+    { "ayah": 4, "surah": 109, "text": "nor will I worship what you worship,in the future." },
+    { "ayah": 5, "surah": 109, "text": "nor will you worship what I worship,in the future." },
+    {
+      "ayah": 6,
+      "surah": 109,
+      "text": "(You have your religion and I have a religion). You have your choice (ikhtiyār) for your religion and I have my choice for a religion. Then [this verse] was abrogated by the verse of the sword [9:5]. His words, Exalted is He:"
+    }
+  ],
+  "empty_ayahs": [{ "ayah": 3, "surah": 109 }]
+}
