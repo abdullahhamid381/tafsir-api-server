@@ -170,10 +170,10 @@ function getEdition(slug) {
 }
 
 /**
- * Lists which surahs have data for an edition, with a cheap ayah count
- * (directory listing only - no JSON parsing) whenever the per-ayah folder
- * exists, falling back to parsing the combined file only if the folder
- * representation is missing.
+ * Lists which surahs have data for an edition. Ayah count comes from the
+ * combined <surah>.json file (one parse per surah); the empty-ayah count,
+ * when present, comes from the flat <surah>.empty_ayahs.json file sitting
+ * next to it.
  */
 async function listSurahs(slug) {
   const e = getEdition(slug);
@@ -182,35 +182,26 @@ async function listSurahs(slug) {
   const numbers = Array.from(e.surahNumbers).sort((a, b) => a - b);
   const out = [];
   for (const num of numbers) {
-    const folderPath = path.join(e.dirPath, String(num));
     const combinedPath = path.join(e.dirPath, `${num}.json`);
+    const emptyPath = path.join(e.dirPath, `${num}.empty_ayahs.json`);
     let ayahCount = null;
     let emptyAyahCount = null;
 
-    if (fs.existsSync(folderPath)) {
-      try {
-        const files = await fsp.readdir(folderPath);
-        const ayahFiles = files.filter((f) => AYAH_FILE_RE.test(f));
-        ayahCount = ayahFiles.length;
-        if (files.includes('empty_ayahs.json')) {
-          try {
-            const empty = await readJSON(path.join(folderPath, 'empty_ayahs.json'));
-            emptyAyahCount = Array.isArray(empty) ? empty.length : null;
-          } catch {
-            emptyAyahCount = null;
-          }
-        }
-      } catch {
-        // fall through to combined-file check below
-      }
-    }
-
-    if (ayahCount === null && fs.existsSync(combinedPath)) {
+    if (fs.existsSync(combinedPath)) {
       try {
         const arr = await readJSON(combinedPath);
         ayahCount = Array.isArray(arr) ? arr.length : null;
       } catch {
         ayahCount = null;
+      }
+    }
+
+    if (fs.existsSync(emptyPath)) {
+      try {
+        const empty = await readJSON(emptyPath);
+        emptyAyahCount = Array.isArray(empty) ? empty.length : null;
+      } catch {
+        emptyAyahCount = null;
       }
     }
 
@@ -271,27 +262,15 @@ async function getAyah(slug, surahNumber, ayahNumber) {
   const e = getEdition(slug);
   if (!e || !e.surahNumbers.has(surahNumber)) return null;
 
-  const filePath = path.join(e.dirPath, String(surahNumber), `${ayahNumber}.json`);
-  if (fs.existsSync(filePath)) {
-    try {
-      const data = await readJSON(filePath);
-      return { has_tafsir: true, ...data };
-    } catch {
-      // fall through to empty-ayah / combined-file checks
-    }
+  const surahData = await getSurah(slug, surahNumber);
+  if (surahData) {
+    const found = surahData.find((a) => a.ayah === ayahNumber);
+    if (found) return { has_tafsir: true, ...found };
   }
 
   const emptyAyahs = await listEmptyAyahs(slug, surahNumber);
   if (emptyAyahs && emptyAyahs.includes(ayahNumber)) {
     return { has_tafsir: false, surah: surahNumber, ayah: ayahNumber };
-  }
-
-  // Per-ayah file missing and not listed as empty either - last resort,
-  // check the combined file in case only that representation exists.
-  const surahData = await getSurah(slug, surahNumber);
-  if (surahData) {
-    const found = surahData.find((a) => a.ayah === ayahNumber);
-    if (found) return { has_tafsir: true, ...found };
   }
 
   return null;
@@ -300,7 +279,7 @@ async function getAyah(slug, surahNumber, ayahNumber) {
 async function listEmptyAyahs(slug, surahNumber) {
   const e = getEdition(slug);
   if (!e || !e.surahNumbers.has(surahNumber)) return null;
-  const filePath = path.join(e.dirPath, String(surahNumber), 'empty_ayahs.json');
+  const filePath = path.join(e.dirPath, `${surahNumber}.empty_ayahs.json`);
   if (!fs.existsSync(filePath)) return [];
   try {
     const arr = await readJSON(filePath);
